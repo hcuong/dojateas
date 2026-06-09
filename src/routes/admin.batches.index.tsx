@@ -32,7 +32,7 @@ function BatchesPage() {
             </div>
             <div className="flex gap-3 text-sm">
               <Link to="/admin/batches/$id" params={{ id: b.id }} className="text-blue-600 hover:underline">Chi tiết</Link>
-              <Link to={"/admin/qr/$id" as any} params={{ id: b.id } as any} className="text-green-700 hover:underline">QR</Link>
+              <Link to="/admin/qr/$id" params={{ id: b.id }} className="text-green-700 hover:underline">QR</Link>
             </div>
           </li>
         ))}
