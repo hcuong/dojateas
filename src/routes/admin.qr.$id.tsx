@@ -8,7 +8,8 @@ const fetchBatchQr = createServerFn({ method: 'GET' })
   .handler(async ({ data: id }) => {
     const batch = await getBatchWithDetails(id)
     if (!batch) return null
-    const traceUrl = `${process.env.APP_URL}/trace/${id}`
+    const baseUrl = process.env.APP_URL ?? 'http://localhost:3000'
+    const traceUrl = `${baseUrl}/trace/${id}`
     const qrDataUrl = await QRCode.toDataURL(traceUrl, { width: 300, margin: 2 })
     return { batch, qrDataUrl, traceUrl }
   })
