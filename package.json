@@ -13,6 +13,7 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@neondatabase/serverless": "^1.1.0",
     "@tailwindcss/vite": "^4.1.18",
     "@tanstack/react-devtools": "latest",
     "@tanstack/react-router": "latest",
@@ -23,7 +24,6 @@
     "better-auth": "^1.6.15",
     "drizzle-orm": "^0.45.2",
     "lucide-react": "^0.545.0",
-    "postgres": "^3.4.9",
     "qrcode": "^1.5.4",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
@@ -45,7 +45,8 @@
     "typescript": "^6.0.2",
     "vite": "^8.0.0",
     "vite-tsconfig-paths": "^6.1.1",
-    "vitest": "^4.1.5"
+    "vitest": "^4.1.5",
+    "wrangler": "^4.99.0"
   },
   "pnpm": {
     "onlyBuiltDependencies": [
