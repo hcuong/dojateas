@@ -1,5 +1,5 @@
 import { createFileRoute, Outlet, redirect, Link, useRouter } from '@tanstack/react-router'
-import { getAdminSession } from '#/lib/auth'
+import { getAdminSession } from '#/lib/auth.functions'
 import { authClient } from '#/lib/auth-client'
 
 export const Route = createFileRoute('/admin')({

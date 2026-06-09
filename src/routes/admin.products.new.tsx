@@ -2,7 +2,7 @@ import { createFileRoute, useRouter } from '@tanstack/react-router'
 import { createServerFn } from '@tanstack/react-start'
 import { useState } from 'react'
 import { createProduct } from '#/db/queries/products'
-import { getAdminSession } from '#/lib/auth'
+import { getAdminSession } from '#/lib/auth.functions'
 
 const addProduct = createServerFn({ method: 'POST' })
   .validator((data: { name: string; description: string; imageUrl: string }) => data)

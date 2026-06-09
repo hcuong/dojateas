@@ -1,4 +1,4 @@
-import { auth } from '../src/lib/auth'
+import { auth } from '../src/lib/auth.server'
 
 await auth.api.signUpEmail({
   body: {

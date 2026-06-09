@@ -3,7 +3,7 @@ import { createServerFn } from '@tanstack/react-start'
 import { useState } from 'react'
 import { getAllProducts } from '#/db/queries/products'
 import { createBatch } from '#/db/queries/batches'
-import { getAdminSession } from '#/lib/auth'
+import { getAdminSession } from '#/lib/auth.functions'
 
 const fetchProducts = createServerFn({ method: 'GET' }).handler(() => getAllProducts())
 const addBatch = createServerFn({ method: 'POST' })

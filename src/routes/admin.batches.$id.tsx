@@ -7,7 +7,7 @@ import {
   removeBatchDetail,
   updateBatchStatus,
 } from '#/db/queries/batches'
-import { getAdminSession } from '#/lib/auth'
+import { getAdminSession } from '#/lib/auth.functions'
 
 const fetchBatch = createServerFn({ method: 'GET' })
   .validator((id: string) => id)
