@@ -24,7 +24,7 @@ function AdminLayout() {
       <nav className="bg-green-800 text-white px-6 py-3 flex items-center justify-between">
         <span className="font-bold text-lg">Dojateas Admin</span>
         <div className="flex gap-4 items-center text-sm">
-          <Link to={"/admin/products" as any} className="hover:underline">Sản phẩm</Link>
+          <Link to="/admin/products" className="hover:underline">Sản phẩm</Link>
           <Link to={"/admin/batches" as any} className="hover:underline">Lô hàng</Link>
           <button onClick={handleSignOut} className="opacity-75 hover:opacity-100">Đăng xuất</button>
         </div>
