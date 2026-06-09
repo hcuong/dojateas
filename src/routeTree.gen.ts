@@ -14,8 +14,11 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AdminIndexRouteImport } from './routes/admin.index'
 import { Route as AdminLoginRouteImport } from './routes/admin.login'
 import { Route as AdminProductsIndexRouteImport } from './routes/admin.products.index'
+import { Route as AdminBatchesIndexRouteImport } from './routes/admin.batches.index'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 import { Route as AdminProductsNewRouteImport } from './routes/admin.products.new'
+import { Route as AdminBatchesNewRouteImport } from './routes/admin.batches.new'
+import { Route as AdminBatchesIdRouteImport } from './routes/admin.batches.$id'
 
 const AdminRoute = AdminRouteImport.update({
   id: '/admin',
@@ -42,6 +45,11 @@ const AdminProductsIndexRoute = AdminProductsIndexRouteImport.update({
   path: '/products/',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminBatchesIndexRoute = AdminBatchesIndexRouteImport.update({
+  id: '/batches/',
+  path: '/batches/',
+  getParentRoute: () => AdminRoute,
+} as any)
 const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
   id: '/api/auth/$',
   path: '/api/auth/$',
@@ -52,22 +60,38 @@ const AdminProductsNewRoute = AdminProductsNewRouteImport.update({
   path: '/products/new',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminBatchesNewRoute = AdminBatchesNewRouteImport.update({
+  id: '/batches/new',
+  path: '/batches/new',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminBatchesIdRoute = AdminBatchesIdRouteImport.update({
+  id: '/batches/$id',
+  path: '/batches/$id',
+  getParentRoute: () => AdminRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/admin': typeof AdminRouteWithChildren
   '/admin/login': typeof AdminLoginRoute
   '/admin/': typeof AdminIndexRoute
+  '/admin/batches/$id': typeof AdminBatchesIdRoute
+  '/admin/batches/new': typeof AdminBatchesNewRoute
   '/admin/products/new': typeof AdminProductsNewRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/admin/batches/': typeof AdminBatchesIndexRoute
   '/admin/products/': typeof AdminProductsIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/admin/login': typeof AdminLoginRoute
   '/admin': typeof AdminIndexRoute
+  '/admin/batches/$id': typeof AdminBatchesIdRoute
+  '/admin/batches/new': typeof AdminBatchesNewRoute
   '/admin/products/new': typeof AdminProductsNewRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/admin/batches': typeof AdminBatchesIndexRoute
   '/admin/products': typeof AdminProductsIndexRoute
 }
 export interface FileRoutesById {
@@ -76,8 +100,11 @@ export interface FileRoutesById {
   '/admin': typeof AdminRouteWithChildren
   '/admin/login': typeof AdminLoginRoute
   '/admin/': typeof AdminIndexRoute
+  '/admin/batches/$id': typeof AdminBatchesIdRoute
+  '/admin/batches/new': typeof AdminBatchesNewRoute
   '/admin/products/new': typeof AdminProductsNewRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/admin/batches/': typeof AdminBatchesIndexRoute
   '/admin/products/': typeof AdminProductsIndexRoute
 }
 export interface FileRouteTypes {
@@ -87,16 +114,22 @@ export interface FileRouteTypes {
     | '/admin'
     | '/admin/login'
     | '/admin/'
+    | '/admin/batches/$id'
+    | '/admin/batches/new'
     | '/admin/products/new'
     | '/api/auth/$'
+    | '/admin/batches/'
     | '/admin/products/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/admin/login'
     | '/admin'
+    | '/admin/batches/$id'
+    | '/admin/batches/new'
     | '/admin/products/new'
     | '/api/auth/$'
+    | '/admin/batches'
     | '/admin/products'
   id:
     | '__root__'
@@ -104,8 +137,11 @@ export interface FileRouteTypes {
     | '/admin'
     | '/admin/login'
     | '/admin/'
+    | '/admin/batches/$id'
+    | '/admin/batches/new'
     | '/admin/products/new'
     | '/api/auth/$'
+    | '/admin/batches/'
     | '/admin/products/'
   fileRoutesById: FileRoutesById
 }
@@ -152,6 +188,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminProductsIndexRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/batches/': {
+      id: '/admin/batches/'
+      path: '/batches'
+      fullPath: '/admin/batches/'
+      preLoaderRoute: typeof AdminBatchesIndexRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/api/auth/$': {
       id: '/api/auth/$'
       path: '/api/auth/$'
@@ -166,20 +209,40 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminProductsNewRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/batches/new': {
+      id: '/admin/batches/new'
+      path: '/batches/new'
+      fullPath: '/admin/batches/new'
+      preLoaderRoute: typeof AdminBatchesNewRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/batches/$id': {
+      id: '/admin/batches/$id'
+      path: '/batches/$id'
+      fullPath: '/admin/batches/$id'
+      preLoaderRoute: typeof AdminBatchesIdRouteImport
+      parentRoute: typeof AdminRoute
+    }
   }
 }
 
 interface AdminRouteChildren {
   AdminLoginRoute: typeof AdminLoginRoute
   AdminIndexRoute: typeof AdminIndexRoute
+  AdminBatchesIdRoute: typeof AdminBatchesIdRoute
+  AdminBatchesNewRoute: typeof AdminBatchesNewRoute
   AdminProductsNewRoute: typeof AdminProductsNewRoute
+  AdminBatchesIndexRoute: typeof AdminBatchesIndexRoute
   AdminProductsIndexRoute: typeof AdminProductsIndexRoute
 }
 
 const AdminRouteChildren: AdminRouteChildren = {
   AdminLoginRoute: AdminLoginRoute,
   AdminIndexRoute: AdminIndexRoute,
+  AdminBatchesIdRoute: AdminBatchesIdRoute,
+  AdminBatchesNewRoute: AdminBatchesNewRoute,
   AdminProductsNewRoute: AdminProductsNewRoute,
+  AdminBatchesIndexRoute: AdminBatchesIndexRoute,
   AdminProductsIndexRoute: AdminProductsIndexRoute,
 }
 

@@ -12,7 +12,7 @@ function AdminDashboard() {
         <Link to="/admin/products" className="block p-6 bg-white rounded shadow hover:shadow-md text-center font-medium">
           Sản phẩm
         </Link>
-        <Link to={"/admin/batches" as any} className="block p-6 bg-white rounded shadow hover:shadow-md text-center font-medium">
+        <Link to="/admin/batches" className="block p-6 bg-white rounded shadow hover:shadow-md text-center font-medium">
           Lô hàng
         </Link>
       </div>
