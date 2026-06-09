@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AdminIndexRouteImport } from './routes/admin.index'
+import { Route as TraceBatchIdRouteImport } from './routes/trace.$batchId'
 import { Route as AdminLoginRouteImport } from './routes/admin.login'
 import { Route as AdminProductsIndexRouteImport } from './routes/admin.products.index'
 import { Route as AdminBatchesIndexRouteImport } from './routes/admin.batches.index'
@@ -36,6 +37,11 @@ const AdminIndexRoute = AdminIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => AdminRoute,
+} as any)
+const TraceBatchIdRoute = TraceBatchIdRouteImport.update({
+  id: '/trace/$batchId',
+  path: '/trace/$batchId',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const AdminLoginRoute = AdminLoginRouteImport.update({
   id: '/login',
@@ -87,6 +93,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/admin': typeof AdminRouteWithChildren
   '/admin/login': typeof AdminLoginRoute
+  '/trace/$batchId': typeof TraceBatchIdRoute
   '/admin/': typeof AdminIndexRoute
   '/admin/batches/$id': typeof AdminBatchesIdRoute
   '/admin/batches/new': typeof AdminBatchesNewRoute
@@ -100,6 +107,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/admin/login': typeof AdminLoginRoute
+  '/trace/$batchId': typeof TraceBatchIdRoute
   '/admin': typeof AdminIndexRoute
   '/admin/batches/$id': typeof AdminBatchesIdRoute
   '/admin/batches/new': typeof AdminBatchesNewRoute
@@ -115,6 +123,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/admin': typeof AdminRouteWithChildren
   '/admin/login': typeof AdminLoginRoute
+  '/trace/$batchId': typeof TraceBatchIdRoute
   '/admin/': typeof AdminIndexRoute
   '/admin/batches/$id': typeof AdminBatchesIdRoute
   '/admin/batches/new': typeof AdminBatchesNewRoute
@@ -131,6 +140,7 @@ export interface FileRouteTypes {
     | '/'
     | '/admin'
     | '/admin/login'
+    | '/trace/$batchId'
     | '/admin/'
     | '/admin/batches/$id'
     | '/admin/batches/new'
@@ -144,6 +154,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/admin/login'
+    | '/trace/$batchId'
     | '/admin'
     | '/admin/batches/$id'
     | '/admin/batches/new'
@@ -158,6 +169,7 @@ export interface FileRouteTypes {
     | '/'
     | '/admin'
     | '/admin/login'
+    | '/trace/$batchId'
     | '/admin/'
     | '/admin/batches/$id'
     | '/admin/batches/new'
@@ -172,6 +184,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AdminRoute: typeof AdminRouteWithChildren
+  TraceBatchIdRoute: typeof TraceBatchIdRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
   ApiQrBatchIdRoute: typeof ApiQrBatchIdRoute
 }
@@ -198,6 +211,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/admin/'
       preLoaderRoute: typeof AdminIndexRouteImport
       parentRoute: typeof AdminRoute
+    }
+    '/trace/$batchId': {
+      id: '/trace/$batchId'
+      path: '/trace/$batchId'
+      fullPath: '/trace/$batchId'
+      preLoaderRoute: typeof TraceBatchIdRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/admin/login': {
       id: '/admin/login'
@@ -292,6 +312,7 @@ const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AdminRoute: AdminRouteWithChildren,
+  TraceBatchIdRoute: TraceBatchIdRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
   ApiQrBatchIdRoute: ApiQrBatchIdRoute,
 }
