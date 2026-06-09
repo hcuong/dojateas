@@ -1,13 +1,17 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest'
 import { db } from '#/db'
-import { products } from '#/db/schema'
+import { products, batches, batchDetails } from '#/db/schema'
 import { getAllProducts, createProduct, getProductById } from './products'
 
 beforeAll(async () => {
+  await db.delete(batchDetails)
+  await db.delete(batches)
   await db.delete(products)
 })
 
 afterAll(async () => {
+  await db.delete(batchDetails)
+  await db.delete(batches)
   await db.delete(products)
 })
 
