@@ -7,6 +7,7 @@ import {
   removeBatchDetail,
   updateBatchStatus,
 } from '#/db/queries/batches'
+import { getAdminSession } from '#/lib/auth'
 
 const fetchBatch = createServerFn({ method: 'GET' })
   .validator((id: string) => id)
@@ -14,15 +15,27 @@ const fetchBatch = createServerFn({ method: 'GET' })
 
 const addDetail = createServerFn({ method: 'POST' })
   .validator((data: { batchId: string; key: string; value: string; mediaUrl: string | null }) => data)
-  .handler(({ data }) => addBatchDetail(data))
+  .handler(async ({ data }) => {
+    const session = await getAdminSession()
+    if (!session) throw new Error('Unauthorized')
+    return addBatchDetail(data)
+  })
 
 const removeDetail = createServerFn({ method: 'POST' })
   .validator((id: string) => id)
-  .handler(({ data: id }) => removeBatchDetail(id))
+  .handler(async ({ data: id }) => {
+    const session = await getAdminSession()
+    if (!session) throw new Error('Unauthorized')
+    return removeBatchDetail(id)
+  })
 
 const setStatus = createServerFn({ method: 'POST' })
   .validator((data: { id: string; status: 'active' | 'recalled' }) => data)
-  .handler(({ data }) => updateBatchStatus(data.id, data.status))
+  .handler(async ({ data }) => {
+    const session = await getAdminSession()
+    if (!session) throw new Error('Unauthorized')
+    return updateBatchStatus(data.id, data.status)
+  })
 
 export const Route = createFileRoute('/admin/batches/$id')({
   loader: ({ params }) => fetchBatch({ data: params.id }),

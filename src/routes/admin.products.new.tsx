@@ -2,16 +2,19 @@ import { createFileRoute, useRouter } from '@tanstack/react-router'
 import { createServerFn } from '@tanstack/react-start'
 import { useState } from 'react'
 import { createProduct } from '#/db/queries/products'
+import { getAdminSession } from '#/lib/auth'
 
 const addProduct = createServerFn({ method: 'POST' })
   .validator((data: { name: string; description: string; imageUrl: string }) => data)
-  .handler(({ data }) =>
-    createProduct({
+  .handler(async ({ data }) => {
+    const session = await getAdminSession()
+    if (!session) throw new Error('Unauthorized')
+    return createProduct({
       name: data.name,
       description: data.description || null,
       imageUrl: data.imageUrl || null,
     })
-  )
+  })
 
 export const Route = createFileRoute('/admin/products/new')({
   component: NewProductPage,

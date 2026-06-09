@@ -3,6 +3,7 @@ import { createServerFn } from '@tanstack/react-start'
 import { useState } from 'react'
 import { getAllProducts } from '#/db/queries/products'
 import { createBatch } from '#/db/queries/batches'
+import { getAdminSession } from '#/lib/auth'
 
 const fetchProducts = createServerFn({ method: 'GET' }).handler(() => getAllProducts())
 const addBatch = createServerFn({ method: 'POST' })
@@ -13,7 +14,11 @@ const addBatch = createServerFn({ method: 'POST' })
     expiryDate: string
     quantity: number
   }) => data)
-  .handler(({ data }) => createBatch(data))
+  .handler(async ({ data }) => {
+    const session = await getAdminSession()
+    if (!session) throw new Error('Unauthorized')
+    return createBatch(data)
+  })
 
 export const Route = createFileRoute('/admin/batches/new')({
   loader: () => fetchProducts(),
