@@ -1,8 +1,8 @@
-# Deployment Design: Cloudflare Pages + Neon
+# Deployment Design: Cloudflare Workers + Neon
 
 **Date:** 2026-06-09  
-**Stack:** TanStack Start · Cloudflare Pages · Neon PostgreSQL  
-**Deploy model:** Git integration (push to `main` → auto-deploy)
+**Stack:** TanStack Start · Cloudflare Workers (+ Assets) · Neon PostgreSQL  
+**Deploy model:** GitHub Actions (push to `main` → build → `wrangler deploy`)
 
 ---
 
@@ -43,26 +43,45 @@ const sql = neon(process.env.DATABASE_URL!)
 export const db = drizzle(sql, { schema })
 ```
 
-### 3. `vite.config.ts` — add Cloudflare preset
+### 3. `vite.config.ts` — unchanged
 
-Add `server: { preset: 'cloudflare-pages' }` to the `tanstackStart()` plugin:
+`tanstackStart()` is used with no preset. TanStack Start v1's plugin schema has no `server.preset` option — it was tried and confirmed to be silently ignored (build output stayed in `dist/`, not `.output/public`). The plain build already produces what's needed:
 
-```ts
-tanstackStart({
-  server: { preset: 'cloudflare-pages' }
-})
+- `dist/client/` — static assets
+- `dist/server/server.js` — SSR handler, default export is `(request: Request) => Promise<Response>`
+
+### 4. New `workers/entry.js` — CF Workers thin wrapper
+
+CF Workers requires a default export shaped like `{ fetch(request, env, ctx) {} }`. TanStack Start's handler is a plain function, so a thin wrapper bridges the two:
+
+```js
+import handler from '../dist/server/server.js'
+
+export default {
+  fetch(request) {
+    return handler(request)
+  },
+}
 ```
 
-### 4. New `wrangler.toml` at project root
+### 5. New `wrangler.toml` at project root
 
 ```toml
 name = "dojateas"
-compatibility_date = "2025-01-01"
+main = "workers/entry.js"
+compatibility_date = "2026-06-10"
 compatibility_flags = ["nodejs_compat"]
-pages_build_output_dir = ".output/public"
+
+[assets]
+directory = "dist/client"
+binding = "ASSETS"
 ```
 
-`nodejs_compat` is required for Better Auth's crypto internals to work inside CF Workers.
+`nodejs_compat` is required for `node:async_hooks` (used by TanStack Start's SSR handler) and Better Auth's crypto internals to work inside CF Workers.
+
+### 6. New `.github/workflows/deploy.yml`
+
+On push to `main`: `npm ci` → `npm run build` → `wrangler deploy` (via `cloudflare/wrangler-action@v3`). Replaces CF Pages' git integration, which doesn't apply to the Workers deploy model.
 
 ### 5. `.env.local` (local dev only, never committed)
 
@@ -101,21 +120,19 @@ DATABASE_URL=<neon-main-url> npx drizzle-kit migrate
 
 ---
 
-## Cloudflare Pages Setup (one-time)
+## Cloudflare Workers Setup (one-time)
 
-1. Cloudflare dashboard → **Pages** → **Connect to Git** → select `dojateas` repo
-2. Build settings:
-   - **Build command:** `npm run build`
-   - **Build output directory:** `.output/public`
-   - **Framework preset:** None
-3. Environment variables (**Settings → Environment Variables**):
+1. Get your Account ID from the Cloudflare dashboard (**Workers & Pages → Overview**)
+2. Create an API token (**My Profile → API Tokens**, "Edit Cloudflare Workers" template)
+3. Add `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` as GitHub repo secrets
+4. Set Worker secrets locally (one-time, persist across deploys):
+   ```bash
+   npx wrangler secret put DATABASE_URL       # Neon main branch connection string
+   npx wrangler secret put BETTER_AUTH_SECRET # same value as local
+   npx wrangler secret put APP_URL            # https://dojateas.<subdomain>.workers.dev
    ```
-   DATABASE_URL       = <neon main branch connection string>
-   BETTER_AUTH_SECRET = <same value as local>
-   APP_URL            = https://dojateas.pages.dev
-   ```
-4. Deploy. CF Pages assigns `https://dojateas.pages.dev` automatically.
-5. Optional: attach a custom domain under **Custom Domains**.
+5. Push to `main` — GitHub Actions runs `npm run build` + `wrangler deploy`. First deploy assigns `https://dojateas.<subdomain>.workers.dev` automatically.
+6. Optional: attach a custom domain under **Workers & Pages → dojateas → Settings → Domains & Routes**.
 
 ---
 
@@ -123,14 +140,14 @@ DATABASE_URL=<neon-main-url> npx drizzle-kit migrate
 
 **When schema has NOT changed:**
 ```
-Write code → npm run dev → git push main → CF Pages auto-deploys
+Write code → npm run dev → git push main → GitHub Actions builds + deploys
 ```
 
 **When schema HAS changed:**
 ```
 Write code → npm run dev (test against Neon dev branch)
            → npx drizzle-kit migrate (against Neon main, BEFORE pushing)
-           → git push main → CF Pages auto-deploys
+           → git push main → GitHub Actions builds + deploys
 ```
 
 Migrations must run against production *before* the new code deploys, so the schema is ready when the new code goes live.

@@ -1,12 +1,12 @@
-# Cloudflare Pages + Neon Deployment Implementation Plan
+# Cloudflare Workers + Neon Deployment Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Deploy the Dojateas TanStack Start app to Cloudflare Pages using Neon PostgreSQL, with a separate Neon `dev` branch for local development.
+**Goal:** Deploy the Dojateas TanStack Start app to Cloudflare Workers using Neon PostgreSQL, with a separate Neon `dev` branch for local development.
 
-**Architecture:** Swap the TCP-based `postgres` driver for `@neondatabase/serverless` (HTTP), add the `cloudflare-pages` preset to the TanStack Start Vite plugin, and add a `wrangler.toml` for CF build configuration. No route, auth, or schema code changes.
+**Architecture:** Swap the TCP-based `postgres` driver for `@neondatabase/serverless` (HTTP). TanStack Start's plain `tanstackStart()` plugin builds `dist/client` (static assets) and `dist/server/server.js` (an SSR handler exported as a function). A thin wrapper at `workers/entry.js` adapts that function into the `{ fetch(request) {} }` shape Cloudflare Workers requires. `wrangler.toml` points `main` at the wrapper and serves `dist/client` via the Workers Assets binding. GitHub Actions runs `npm run build` + `wrangler deploy` on push to `main`. No route, auth, or schema code changes.
 
-**Tech Stack:** TanStack Start · Cloudflare Pages · Neon PostgreSQL · `@neondatabase/serverless` · `drizzle-orm/neon-http` · Wrangler
+**Tech Stack:** TanStack Start · Cloudflare Workers (+ Assets) · Neon PostgreSQL · `@neondatabase/serverless` · `drizzle-orm/neon-http` · Wrangler · GitHub Actions
 
 ---
 
@@ -17,8 +17,9 @@
 | Modify | `.gitignore` | Add `.env.local` |
 | Modify | `package.json` | Add `@neondatabase/serverless`, `wrangler`; remove `postgres` |
 | Modify | `src/db/index.ts` | Swap postgres driver → neon-http |
-| Modify | `vite.config.ts` | Add `server: { preset: 'cloudflare-pages' }` |
-| Create | `wrangler.toml` | CF build config |
+| Create | `workers/entry.js` | Thin wrapper adapting TanStack Start's handler to CF Workers' `fetch` export |
+| Create | `wrangler.toml` | Worker entry + assets config |
+| Create | `.github/workflows/deploy.yml` | Build + `wrangler deploy` on push to `main` |
 
 ---
 
@@ -164,76 +165,70 @@ git commit -m "feat: swap postgres driver to neon-http for CF Workers compatibil
 
 ---
 
-## Task 5: Add the Cloudflare Pages preset to vite.config.ts
+## Task 5: Revert the cloudflare-pages preset (DONE)
 
 **Files:**
 - Modify: `vite.config.ts`
 
-The `cloudflare-pages` preset tells TanStack Start to produce a CF Workers-compatible bundle and output static assets to `.output/public`.
-
-- [ ] **Step 1: Update vite.config.ts**
-
-Replace the entire file with:
+> **Status: already completed and committed (`dbb3c04`).** Recorded here for plan accuracy — `server: { preset: 'cloudflare-pages' }` is not part of TanStack Start v1's plugin schema (the type only exposes `server.build.inlineCss`) and was silently ignored: the build output stayed in `dist/`, not `.output/public`. `vite.config.ts` was reverted to the plain config:
 
 ```ts
 import { defineConfig } from 'vite'
 import { devtools } from '@tanstack/devtools-vite'
+
 import { tanstackStart } from '@tanstack/react-start/plugin/vite'
+
 import viteReact from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 
 const config = defineConfig({
   resolve: { tsconfigPaths: true },
-  plugins: [
-    devtools(),
-    tailwindcss(),
-    tanstackStart({ server: { preset: 'cloudflare-pages' } }),
-    viteReact(),
-  ],
+  plugins: [devtools(), tailwindcss(), tanstackStart(), viteReact()],
 })
 
 export default config
 ```
 
-- [ ] **Step 2: Verify TypeScript is happy**
-
-```bash
-npx tsc --noEmit
-```
-
-Expected: no errors.
-
-- [ ] **Step 3: Commit**
-
-```bash
-git add vite.config.ts
-git commit -m "feat: add cloudflare-pages preset to TanStack Start"
-```
+`npm run build` produces:
+- `dist/client/` — static assets (JS/CSS chunks, favicon, manifest, etc.), no `index.html`
+- `dist/server/server.js` — SSR handler, `export default` is a function `(request: Request) => Promise<Response>`
 
 ---
 
-## Task 6: Create wrangler.toml
+## Task 6: Cloudflare Workers entry wrapper + wrangler.toml (DONE)
 
 **Files:**
+- Create: `workers/entry.js`
 - Create: `wrangler.toml`
 
-`wrangler.toml` tells Cloudflare where to find the build output and which runtime flags to enable. `nodejs_compat` is required for Better Auth's crypto internals to run inside CF Workers.
+> **Status: already completed and committed (`a0c7500`), verified with `npx wrangler deploy --dry-run`.** Recorded here for plan accuracy.
 
-- [ ] **Step 1: Create wrangler.toml at project root**
+CF Workers requires a default export shaped like `{ fetch(request, env, ctx) {} }`, but TanStack Start's `dist/server/server.js` exports a plain function. `workers/entry.js` bridges the two:
+
+```js
+import handler from '../dist/server/server.js'
+
+export default {
+  fetch(request) {
+    return handler(request)
+  },
+}
+```
+
+`wrangler.toml` points `main` at this wrapper and serves `dist/client` as static assets. `nodejs_compat` is required for `node:async_hooks` (used by TanStack Start's SSR handler) and Better Auth's crypto internals.
 
 ```toml
 name = "dojateas"
-compatibility_date = "2025-01-01"
+main = "workers/entry.js"
+compatibility_date = "2026-06-10"
 compatibility_flags = ["nodejs_compat"]
-pages_build_output_dir = ".output/public"
+
+[assets]
+directory = "dist/client"
+binding = "ASSETS"
 ```
 
-- [ ] **Step 2: Commit**
-
-```bash
-git add wrangler.toml
-git commit -m "chore: add wrangler.toml for Cloudflare Pages config"
-```
+Verification performed: `npm run build` then `npx wrangler deploy --dry-run` — output showed the worker bundled from `workers/entry.js`, 27 files read from `dist/client`, and `env.ASSETS` bound. No "No bindings found" warning (the failure mode of the earlier `@cloudflare/vite-plugin`-generated config).
 
 ---
 
@@ -247,79 +242,110 @@ git commit -m "chore: add wrangler.toml for Cloudflare Pages config"
 npm run build
 ```
 
-Expected: build completes with no errors. You should see output referencing the cloudflare-pages preset and a final success line.
+Expected: build completes with no errors, ending with a Vite build summary listing `dist/server/server.js` and `dist/client/assets/*`.
 
 If the build fails with a `postgres` module error, verify `src/db/index.ts` no longer imports from `postgres` (Task 4).
 
-If the build fails with a `nodejs_compat` or crypto error, verify `wrangler.toml` is present and committed (Task 6).
-
-- [ ] **Step 2: Confirm the output directory exists**
+- [ ] **Step 2: Confirm the output directories exist**
 
 ```bash
-ls .output/public
+ls dist/client && ls dist/server
 ```
 
-Expected: directory exists and contains at least a `_worker.js` file and static assets.
+Expected: `dist/client` contains `assets/` plus static files (favicon, manifest, etc.); `dist/server` contains `server.js` and `assets/`.
 
-- [ ] **Step 3: Run tests one final time**
+- [ ] **Step 3: Dry-run the Cloudflare Worker deploy**
+
+```bash
+npx wrangler deploy --dry-run
+```
+
+Expected: output ends with `Total Upload: ...` and lists `env.ASSETS` under "Your Worker has access to the following bindings". No "No bindings found" or "redirected configuration path does not exist" errors.
+
+If you see a redirect error referencing `.wrangler/deploy/config.json`, run `rm -rf .wrangler` and retry — this is a stale cache from a previous config.
+
+- [ ] **Step 4: Run tests one final time**
 
 ```bash
 npm test
 ```
 
-Expected: all tests pass.
+Expected: all tests pass. Requires `.env.local` from Task 2.
 
-- [ ] **Step 4: Push to GitHub**
+- [ ] **Step 5: Push to GitHub**
 
 ```bash
 git push origin main
 ```
 
+This triggers `.github/workflows/deploy.yml` (Task 8), which builds and runs `wrangler deploy`. The first run will fail until Task 8's secrets are configured — that's expected.
+
 ---
 
-## Task 8: Cloudflare Pages setup (manual, one-time)
+## Task 8: Cloudflare Workers + GitHub Actions deploy setup (manual, one-time)
 
-This task has no code changes — it's done in the Cloudflare dashboard. Complete after Task 7's git push so the latest code is on GitHub.
+This task has no application code changes — `.github/workflows/deploy.yml` already exists. The remaining steps configure Cloudflare and GitHub so that workflow can deploy.
 
-- [ ] **Step 1: Connect your GitHub repo**
+- [ ] **Step 1: Get your Cloudflare Account ID**
 
-Go to cloudflare.com → **Pages** → **Create a project** → **Connect to Git**. Authorize GitHub and select the `dojateas` repository.
+Go to the Cloudflare dashboard → **Workers & Pages** → **Overview**. Your Account ID is shown in the right sidebar. Copy it.
 
-- [ ] **Step 2: Configure the build**
+- [ ] **Step 2: Create a Cloudflare API token**
 
-In the build settings:
-- **Framework preset:** None
-- **Build command:** `npm run build`
-- **Build output directory:** `.output/public`
+Go to **My Profile → API Tokens → Create Token**. Use the **"Edit Cloudflare Workers"** template, scoped to your account. Copy the generated token (shown once).
 
-- [ ] **Step 3: Add environment variables**
+- [ ] **Step 3: Add GitHub repository secrets**
 
-Under **Settings → Environment Variables**, add these for the **Production** environment:
+In the GitHub repo → **Settings → Secrets and variables → Actions → New repository secret**, add:
 
 ```
-DATABASE_URL       = <neon main branch pooled connection string>
-BETTER_AUTH_SECRET = <same value as BETTER_AUTH_SECRET in your .env.local>
-APP_URL            = https://dojateas.pages.dev
+CLOUDFLARE_API_TOKEN  = <token from Step 2>
+CLOUDFLARE_ACCOUNT_ID = <account ID from Step 1>
 ```
 
-- [ ] **Step 4: Deploy**
+- [ ] **Step 4: Set production secrets on the Worker**
 
-Click **Save and Deploy**. Watch the build log. The first deploy takes ~2 minutes.
+Run these locally (requires `npx wrangler login` once if not already authenticated):
+
+```bash
+npx wrangler secret put DATABASE_URL
+# paste: Neon main branch pooled connection string
+
+npx wrangler secret put BETTER_AUTH_SECRET
+# paste: same value as BETTER_AUTH_SECRET in your .env.local
+
+npx wrangler secret put APP_URL
+# paste: https://dojateas.<your-workers-subdomain>.workers.dev
+```
+
+`wrangler secret put` creates the worker on first use if it doesn't exist yet. Worker secrets persist across deploys — you only set these once (or when values change).
+
+For the `APP_URL` value: if you don't know your `*.workers.dev` subdomain yet, run `npx wrangler deploy` once first (Step 5) — the deploy output prints the URL — then set `APP_URL` afterward and redeploy.
+
+- [ ] **Step 5: Trigger the first deploy**
+
+Push any commit to `main` (or re-run the failed workflow from Task 7 Step 5 in the GitHub Actions tab).
+
+```bash
+git push origin main
+```
+
+Watch the **Actions** tab. The workflow runs `npm ci`, `npm run build`, then `wrangler deploy`.
 
 If it fails, check:
-- Build log for the specific error message
-- That all three environment variables are set correctly
-- That `wrangler.toml` is committed and `pages_build_output_dir` is `.output/public`
+- The Actions log for the specific error message
+- That both repository secrets from Step 3 are set correctly
+- That `npx wrangler whoami` (run locally) shows the same account as `CLOUDFLARE_ACCOUNT_ID`
 
-- [ ] **Step 5: Verify the live app**
+- [ ] **Step 6: Verify the live app**
 
-Open `https://dojateas.pages.dev`. Navigate to `/admin/login` and confirm the login page loads. Log in and verify you can reach the admin panel.
+Open `https://dojateas.<your-workers-subdomain>.workers.dev`. Navigate to `/admin/login` and confirm the login page loads. Log in and verify you can reach the admin panel.
 
 ---
 
 ## Future deploys
 
-Every `git push origin main` triggers an automatic CF Pages build and deploy. No manual steps needed unless the database schema changes.
+Every `git push origin main` triggers `.github/workflows/deploy.yml`, which builds and runs `wrangler deploy`. No manual steps needed unless the database schema changes.
 
 **When schema changes — run migrations against Neon main BEFORE pushing:**
 
