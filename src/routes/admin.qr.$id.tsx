@@ -10,7 +10,8 @@ const fetchBatchQr = createServerFn({ method: 'GET' })
     if (!batch) return null
     const baseUrl = process.env.APP_URL ?? 'http://localhost:3000'
     const traceUrl = `${baseUrl}/trace/${id}`
-    const qrDataUrl = await QRCode.toDataURL(traceUrl, { width: 300, margin: 2 })
+    const svg = await QRCode.toString(traceUrl, { type: 'svg', width: 300, margin: 2 })
+    const qrDataUrl = `data:image/svg+xml,${encodeURIComponent(svg)}`
     return { batch, qrDataUrl, traceUrl }
   })
 
@@ -36,10 +37,10 @@ function QRPage() {
         <p className="text-xs text-gray-400 text-center break-all">{traceUrl}</p>
         <a
           href={`/api/qr/${batch.id}`}
-          download={`qr-${batch.id}.png`}
+          download={`qr-${batch.id}.svg`}
           className="bg-green-700 text-white px-4 py-2 rounded w-full text-center hover:bg-green-800"
         >
-          Tải xuống PNG
+          Tải xuống SVG
         </a>
       </div>
 
