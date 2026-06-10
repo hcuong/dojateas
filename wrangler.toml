@@ -3,6 +3,11 @@ main = "workers/entry.js"
 compatibility_date = "2026-06-10"
 compatibility_flags = ["nodejs_compat"]
 
+routes = [
+  { pattern = "dojatea.com", custom_domain = true },
+  { pattern = "www.dojatea.com", custom_domain = true },
+]
+
 [assets]
 directory = "dist/client"
 binding = "ASSETS"
