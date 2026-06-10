@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from '@tanstack/react-router'
 import { createServerFn } from '@tanstack/react-start'
-import QRCode from 'qrcode'
+import { generateQrSvgWithLogo } from '#/lib/qr'
 import { getBatchWithDetails } from '#/db/queries/batches'
 
 const fetchBatchQr = createServerFn({ method: 'GET' })
@@ -10,7 +10,7 @@ const fetchBatchQr = createServerFn({ method: 'GET' })
     if (!batch) return null
     const baseUrl = process.env.APP_URL ?? 'http://localhost:3000'
     const traceUrl = `${baseUrl}/trace/${id}`
-    const svg = await QRCode.toString(traceUrl, { type: 'svg', width: 300, margin: 2 })
+    const svg = await generateQrSvgWithLogo(traceUrl, 300)
     const qrDataUrl = `data:image/svg+xml,${encodeURIComponent(svg)}`
     return { batch, qrDataUrl, traceUrl }
   })
