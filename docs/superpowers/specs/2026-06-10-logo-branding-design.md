@@ -27,16 +27,16 @@ Pure SVG string post-processing of the output from the `qrcode` package — no n
 Import the logo as a base64 data URI at build time, so the generated SVG is fully self-contained (no runtime fetch, works identically in dev and on Workers):
 
 ```ts
-import logoDataUri from '../../public/doja_logo.png?inline'
+import logoDataUri from '../assets/doja-logo-qr.png?inline'
 ```
 
-Vite's `?inline` query forces the asset to be inlined as a base64 data URI regardless of `assetsInlineLimit` (confirmed supported by the installed Vite version via `inlineRE` in its asset plugin).
+Vite's `?inline` query forces the asset to be inlined as a base64 data URI regardless of `assetsInlineLimit` (confirmed via `inlineRE` in the installed Vite version's asset plugin) — but **only for files outside `public/`**. Files in `public/` skip Vite's asset pipeline entirely; in production builds `?inline` on a public-dir file falls back to the default 4KB `assetsInlineLimit` and would not be inlined. So a small resized copy of the logo (~120px, optimized for the QR overlay size) lives at `src/assets/doja-logo-qr.png`, separate from `public/doja_logo.png`.
 
 ### Shared helper — `src/lib/qr.ts`
 
 ```ts
 import QRCode from 'qrcode'
-import logoDataUri from '../../public/doja_logo.png?inline'
+import logoDataUri from '../assets/doja-logo-qr.png?inline'
 
 const LOGO_RATIO = 0.2 // logo width as a fraction of the QR code's viewBox size
 
