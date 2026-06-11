@@ -1,5 +1,5 @@
 import { createFileRoute } from '@tanstack/react-router'
-import QRCode from 'qrcode'
+import { generateQrSvgWithLogo } from '#/lib/qr'
 
 export const Route = createFileRoute('/api/qr/$batchId')({
   preload: false,
@@ -8,7 +8,7 @@ export const Route = createFileRoute('/api/qr/$batchId')({
       GET: async ({ params }: { params: { batchId: string } }) => {
         const baseUrl = process.env.APP_URL ?? 'http://localhost:3000'
         const url = `${baseUrl}/trace/${params.batchId}`
-        const svg = await QRCode.toString(url, { type: 'svg', width: 400, margin: 2 })
+        const svg = await generateQrSvgWithLogo(url, 400)
         return new Response(svg, {
           headers: {
             'Content-Type': 'image/svg+xml',
